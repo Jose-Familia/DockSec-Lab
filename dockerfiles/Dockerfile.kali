@@ -1,0 +1,15 @@
+FROM kalilinux/kali-rolling
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt update && apt install -y --no-install-recommends \
+    sudo net-tools iputils-ping nmap tcpdump curl wget git vim python3 python3-pip \
+    socat sqlmap gobuster nikto curl jq \
+    && apt clean && rm -rf /var/lib/apt/lists/*
+
+# usuario no-root
+RUN useradd -ms /bin/bash attacker && echo "attacker:attacker" | chpasswd && usermod -aG sudo attacker
+USER attacker
+WORKDIR /home/attacker
+
+CMD ["/bin/bash"]

@@ -1,0 +1,119 @@
+# Custom Suricata Rules for Docker Security Lab
+# These rules detect common attack patterns and suspicious activities
+
+# ============================================
+# SQL Injection Detection Rules
+# ============================================
+alert http any any -> $HOME_NET any (msg:"SQL Injection Attempt - UNION SELECT"; flow:established,to_server; content:"union"; nocase; content:"select"; nocase; distance:0; classtype:web-application-attack; sid:1000001; rev:1;)
+
+alert http any any -> $HOME_NET any (msg:"SQL Injection Attempt - OR 1=1"; flow:established,to_server; content:"or"; nocase; content:"1=1"; nocase; distance:0; classtype:web-application-attack; sid:1000002; rev:1;)
+
+alert http any any -> $HOME_NET any (msg:"SQL Injection Attempt - Single Quote"; flow:established,to_server; content:"'"; pcre:"/['\"](\\s)*(or|union|and|select)/i"; classtype:web-application-attack; sid:1000003; rev:1;)
+
+alert http any any -> $HOME_NET any (msg:"SQL Injection - DROP TABLE"; flow:established,to_server; content:"drop"; nocase; content:"table"; nocase; distance:0; classtype:web-application-attack; sid:1000004; rev:1;)
+
+# ============================================
+# XSS (Cross-Site Scripting) Detection Rules
+# ============================================
+alert http any any -> $HOME_NET any (msg:"XSS Attempt - Script Tag"; flow:established,to_server; content:"<script"; nocase; classtype:web-application-attack; sid:1000010; rev:1;)
+
+alert http any any -> $HOME_NET any (msg:"XSS Attempt - JavaScript Event"; flow:established,to_server; content:"onerror="; nocase; classtype:web-application-attack; sid:1000011; rev:1;)
+
+alert http any any -> $HOME_NET any (msg:"XSS Attempt - JavaScript Alert"; flow:established,to_server; content:"alert("; nocase; classtype:web-application-attack; sid:1000012; rev:1;)
+
+alert http any any -> $HOME_NET any (msg:"XSS Attempt - IMG Tag with JavaScript"; flow:established,to_server; content:"<img"; nocase; content:"javascript:"; nocase; distance:0; classtype:web-application-attack; sid:1000013; rev:1;)
+
+# ============================================
+# Port Scanning Detection Rules
+# ============================================
+alert tcp any any -> $HOME_NET any (msg:"NMAP TCP SYN Scan"; flags:S,12; threshold:type both, track by_src, count 20, seconds 10; classtype:attempted-recon; sid:1000020; rev:1;)
+
+alert tcp any any -> $HOME_NET any (msg:"NMAP TCP NULL Scan"; flags:0; threshold:type both, track by_src, count 20, seconds 10; classtype:attempted-recon; sid:1000021; rev:1;)
+
+alert tcp any any -> $HOME_NET any (msg:"NMAP TCP FIN Scan"; flags:F,12; threshold:type both, track by_src, count 20, seconds 10; classtype:attempted-recon; sid:1000022; rev:1;)
+
+alert tcp any any -> $HOME_NET any (msg:"NMAP TCP XMAS Scan"; flags:FPU,12; threshold:type both, track by_src, count 20, seconds 10; classtype:attempted-recon; sid:1000023; rev:1;)
+
+# ============================================
+# Brute Force Detection Rules
+# ============================================
+alert tcp any any -> $HOME_NET $SSH_PORTS (msg:"SSH Brute Force Attempt"; flow:established,to_server; threshold:type both, track by_src, count 5, seconds 60; classtype:attempted-admin; sid:1000030; rev:1;)
+
+alert http any any -> $HOME_NET any (msg:"HTTP Authentication Brute Force"; flow:established,to_server; content:"401"; http_stat_code; threshold:type both, track by_src, count 10, seconds 60; classtype:attempted-admin; sid:1000031; rev:1;)
+
+alert tcp any any -> $HOME_NET 3306 (msg:"MySQL Brute Force Attempt"; flow:established,to_server; threshold:type both, track by_src, count 5, seconds 60; classtype:attempted-admin; sid:1000032; rev:1;)
+
+# ============================================
+# Command Injection Detection Rules
+# ============================================
+alert http any any -> $HOME_NET any (msg:"Command Injection - System Call"; flow:established,to_server; content:"system("; nocase; classtype:web-application-attack; sid:1000040; rev:1;)
+
+alert http any any -> $HOME_NET any (msg:"Command Injection - Shell Execution"; flow:established,to_server; content:"/bin/bash"; nocase; classtype:web-application-attack; sid:1000041; rev:1;)
+
+alert http any any -> $HOME_NET any (msg:"Command Injection - Pipe Character"; flow:established,to_server; content:"|"; pcre:"/\\|\\s*(cat|ls|whoami|id|uname)/i"; classtype:web-application-attack; sid:1000042; rev:1;)
+
+# ============================================
+# Directory Traversal Detection Rules
+# ============================================
+alert http any any -> $HOME_NET any (msg:"Directory Traversal Attempt"; flow:established,to_server; content:"../"; classtype:web-application-attack; sid:1000050; rev:1;)
+
+alert http any any -> $HOME_NET any (msg:"Directory Traversal - Encoded"; flow:established,to_server; content:"%2e%2e%2f"; nocase; classtype:web-application-attack; sid:1000051; rev:1;)
+
+alert http any any -> $HOME_NET any (msg:"Directory Traversal - Windows"; flow:established,to_server; content:"..\\"; classtype:web-application-attack; sid:1000052; rev:1;)
+
+# ============================================
+# File Upload/Download Detection Rules
+# ============================================
+alert http any any -> $HOME_NET any (msg:"Suspicious File Upload - PHP"; flow:established,to_server; content:"Content-Type|3a| multipart/form-data"; content:".php"; nocase; classtype:web-application-attack; sid:1000060; rev:1;)
+
+alert http any any -> $HOME_NET any (msg:"Suspicious File Upload - Executable"; flow:established,to_server; content:"Content-Type|3a| multipart/form-data"; content:".exe"; nocase; classtype:web-application-attack; sid:1000061; rev:1;)
+
+# ============================================
+# Exploitation Tools Detection
+# ============================================
+alert http any any -> $HOME_NET any (msg:"SQLMap User-Agent Detected"; flow:established,to_server; content:"User-Agent|3a| sqlmap"; nocase; classtype:web-application-attack; sid:1000070; rev:1;)
+
+alert http any any -> $HOME_NET any (msg:"Nikto Scanner Detected"; flow:established,to_server; content:"User-Agent|3a| Nikto"; nocase; classtype:web-application-attack; sid:1000071; rev:1;)
+
+alert http any any -> $HOME_NET any (msg:"Gobuster Scanner Detected"; flow:established,to_server; content:"User-Agent|3a| gobuster"; nocase; classtype:web-application-attack; sid:1000072; rev:1;)
+
+alert tcp any any -> $HOME_NET any (msg:"Metasploit User-Agent Detected"; flow:established,to_server; content:"Metasploit"; nocase; classtype:attempted-admin; sid:1000073; rev:1;)
+
+# ============================================
+# OWASP Top 10 Detection Rules
+# ============================================
+alert http any any -> $HOME_NET any (msg:"OWASP - Sensitive Data Exposure in URL"; flow:established,to_server; content:"password="; nocase; classtype:web-application-attack; sid:1000080; rev:1;)
+
+alert http any any -> $HOME_NET any (msg:"OWASP - JWT Token in URL"; flow:established,to_server; content:"eyJ"; classtype:web-application-attack; sid:1000081; rev:1;)
+
+alert http any any -> $HOME_NET any (msg:"OWASP - API Key Exposure"; flow:established,to_server; content:"api_key="; nocase; classtype:web-application-attack; sid:1000082; rev:1;)
+
+# ============================================
+# Suspicious Network Activity
+# ============================================
+alert tcp any any -> $HOME_NET any (msg:"Suspicious - Multiple Failed Connections"; flow:not_established; threshold:type both, track by_src, count 10, seconds 5; classtype:misc-activity; sid:1000090; rev:1;)
+
+alert icmp any any -> $HOME_NET any (msg:"ICMP Ping Sweep"; itype:8; threshold:type both, track by_src, count 10, seconds 5; classtype:attempted-recon; sid:1000091; rev:1;)
+
+alert tcp any any -> $HOME_NET any (msg:"Large Data Transfer Outbound"; flow:established,from_server; dsize:>100000; threshold:type both, track by_dst, count 5, seconds 60; classtype:misc-activity; sid:1000092; rev:1;)
+
+# ============================================
+# Protocol Anomalies
+# ============================================
+alert tcp any any -> $HOME_NET $HTTP_PORTS (msg:"HTTP Protocol Anomaly - Multiple Host Headers"; flow:established,to_server; content:"Host|3a|"; content:"Host|3a|"; distance:1; classtype:protocol-command-decode; sid:1000100; rev:1;)
+
+alert http any any -> $HOME_NET any (msg:"HTTP Protocol Anomaly - Invalid Method"; flow:established,to_server; content:!"GET"; depth:3; content:!"POST"; depth:4; content:!"HEAD"; depth:4; content:!"PUT"; depth:3; content:!"DELETE"; depth:6; classtype:protocol-command-decode; sid:1000101; rev:1;)
+
+# ============================================
+# Juice Shop Specific Rules
+# ============================================
+alert http any any -> 172.25.0.10 any (msg:"Juice Shop - Admin Access Attempt"; flow:established,to_server; content:"/admin"; http_uri; classtype:web-application-attack; sid:1000110; rev:1;)
+
+alert http any any -> 172.25.0.10 any (msg:"Juice Shop - API Access"; flow:established,to_server; content:"/api/"; http_uri; classtype:web-application-activity; sid:1000111; rev:1;)
+
+# ============================================
+# DVWA Specific Rules
+# ============================================
+alert http any any -> 172.25.0.21 any (msg:"DVWA - Command Injection Attempt"; flow:established,to_server; content:"/vulnerabilities/exec"; http_uri; classtype:web-application-attack; sid:1000120; rev:1;)
+
+alert http any any -> 172.25.0.21 any (msg:"DVWA - File Upload Attempt"; flow:established,to_server; content:"/vulnerabilities/upload"; http_uri; classtype:web-application-attack; sid:1000121; rev:1;)

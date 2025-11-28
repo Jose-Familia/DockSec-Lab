@@ -1,0 +1,159 @@
+version: "3.8"
+
+networks:
+  lab_internal:
+    driver: bridge
+    internal: false
+    ipam:
+      config:
+        - subnet: 172.25.0.0/24
+
+  attacker_net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.26.0.0/24
+
+  monitor_net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.27.0.0/24
+
+services:
+  kali-attacker:
+    image: lab/kali:1.0
+    container_name: kali-attacker
+    hostname: kali-attacker
+    tty: true
+    stdin_open: true
+    networks:
+      attacker_net:
+        ipv4_address: 172.26.0.10
+      lab_internal:
+        ipv4_address: 172.25.0.100
+    cap_add:
+      - NET_RAW
+      - NET_ADMIN
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 2048M
+    volumes:
+      - attacker_home:/home/attacker
+
+  juice-shop:
+    image: bkimminich/juice-shop:latest
+    container_name: juice-shop
+    hostname: juice-shop
+    networks:
+      lab_internal:
+        ipv4_address: 172.25.0.10
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+    ports:
+      - "3001:3000"
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+  mysql:
+    image: mysql:5.7
+    container_name: mysql-db
+    hostname: mysql-db
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+      MYSQL_DATABASE: dvwa
+      MYSQL_USER: dvwa
+      MYSQL_PASSWORD: dvwa
+    networks:
+      lab_internal:
+        ipv4_address: 172.25.0.20
+    volumes:
+      - mysql_data:/var/lib/mysql
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+  dvwa:
+    image: vulnerables/web-dvwa:latest
+    container_name: dvwa
+    hostname: dvwa
+    depends_on:
+      - mysql
+    networks:
+      lab_internal:
+        ipv4_address: 172.25.0.21
+    ports:
+      - "8080:80"
+    environment:
+      MYSQL_HOSTNAME: mysql-db
+      MYSQL_DATABASE: dvwa
+      MYSQL_USERNAME: dvwa
+      MYSQL_PASSWORD: dvwa
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+  vuln-ssh:
+    image: lscr.io/linuxserver/openssh-server:latest
+    container_name: vuln-ssh
+    hostname: vuln-ssh
+    networks:
+      lab_internal:
+        ipv4_address: 172.25.0.30
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/New_York
+      - PASSWORD_ACCESS=true
+      - USER_PASSWORD=password123
+      - USER_NAME=admin
+    ports:
+      - "2222:2222"
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+  suricata:
+    image: lab/suricata:1.0
+    container_name: suricata-ids
+    hostname: suricata-ids
+    networks:
+      monitor_net:
+        ipv4_address: 172.27.0.10
+      lab_internal:
+        ipv4_address: 172.25.0.200
+    volumes:
+      - suricata_logs:/var/log/suricata
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  attacker_home:
+  mysql_data:
+  suricata_logs:

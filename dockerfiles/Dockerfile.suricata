@@ -1,0 +1,29 @@
+FROM ubuntu:22.04
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install Suricata and dependencies
+RUN apt update && apt install -y --no-install-recommends \
+    suricata \
+    ca-certificates \
+    iproute2 \
+    tcpdump \
+    python3-pip \
+    jq \
+    && apt clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create suricata user and group if they don't exist
+RUN groupadd -r suricata 2>/dev/null || true && \
+    useradd -r -g suricata -d /var/log/suricata -s /usr/sbin/nologin suricata 2>/dev/null || true
+
+# Create necessary directories
+RUN mkdir -p /var/log/suricata /etc/suricata/rules
+
+# Copy configuration files from configs directory
+COPY ../configs/suricata.yaml /etc/suricata/suricata.yaml
+COPY ../configs/suricata-rules.rules /etc/suricata/rules/local.rules
+
+# Set proper permissions
+RUN chown -R suricata:suricata /var/log/suricata /etc/suricata
+
+CMD ["/usr/bin/suricata", "-c", "/etc/suricata/suricata.yaml", "-i", "eth0"]

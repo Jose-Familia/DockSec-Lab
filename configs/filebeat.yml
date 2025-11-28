@@ -1,0 +1,81 @@
+# Filebeat Configuration for Docker Security Lab
+# This configuration collects logs from Suricata and Docker containers
+
+filebeat.inputs:
+  # Suricata EVE JSON logs
+  - type: log
+    enabled: true
+    paths:
+      - /var/log/suricata/eve.json
+    json.keys_under_root: true
+    json.add_error_key: true
+    fields:
+      log_type: suricata
+      environment: lab
+    fields_under_root: true
+
+  # Suricata fast.log
+  - type: log
+    enabled: true
+    paths:
+      - /var/log/suricata/fast.log
+    fields:
+      log_type: suricata_fast
+      environment: lab
+    fields_under_root: true
+
+  # Suricata HTTP logs
+  - type: log
+    enabled: true
+    paths:
+      - /var/log/suricata/http.log
+    fields:
+      log_type: suricata_http
+      environment: lab
+    fields_under_root: true
+
+# Filebeat modules
+filebeat.config.modules:
+  path: ${path.config}/modules.d/*.yml
+  reload.enabled: false
+
+# Processors to enrich data
+processors:
+  - add_host_metadata:
+      when.not.contains.tags: forwarded
+  - add_cloud_metadata: ~
+  - add_docker_metadata: ~
+
+# Output configuration
+output.elasticsearch:
+  enabled: false
+  # hosts: ["elasticsearch:9200"]
+  # index: "filebeat-%{[agent.version]}-%{+yyyy.MM.dd}"
+
+output.logstash:
+  enabled: false
+  # hosts: ["logstash:5044"]
+
+output.file:
+  enabled: true
+  path: "/tmp/filebeat"
+  filename: filebeat
+  rotate_every_kb: 10000
+  number_of_files: 5
+
+output.console:
+  enabled: false
+  pretty: true
+
+# Logging configuration
+logging.level: info
+logging.to_files: true
+logging.files:
+  path: /var/log/filebeat
+  name: filebeat
+  keepfiles: 7
+  permissions: 0644
+
+# HTTP endpoint for monitoring
+http.enabled: false
+http.port: 5066
