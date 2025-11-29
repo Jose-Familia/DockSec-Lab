@@ -857,7 +857,7 @@ Este proyecto es para fines educativos únicamente. Las aplicaciones incluidas t
 ## 👥 Autores
 
 - Proyecto creado para entrenamiento en ciberseguridad
-- Mantenido por la comunidad
+- Jose Familia
 
 ## 🙏 Agradecimientos
 
