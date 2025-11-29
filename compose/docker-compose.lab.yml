@@ -35,8 +35,9 @@ services:
     cap_add:
       - NET_RAW
       - NET_ADMIN
+    privileged: false
     security_opt:
-      - no-new-privileges:true
+      - no-new-privileges:false
     deploy:
       resources:
         limits:

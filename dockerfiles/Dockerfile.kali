@@ -4,11 +4,18 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt update && apt install -y --no-install-recommends \
     sudo net-tools iputils-ping nmap tcpdump curl wget git vim python3 python3-pip \
-    socat sqlmap gobuster nikto curl jq \
+    socat sqlmap gobuster nikto jq \
     && apt clean && rm -rf /var/lib/apt/lists/*
 
-# usuario no-root
-RUN useradd -ms /bin/bash attacker && echo "attacker:attacker" | chpasswd && usermod -aG sudo attacker
+# Configurar sudo sin contraseña para el usuario attacker
+RUN useradd -ms /bin/bash attacker && \
+    echo "attacker:attacker" | chpasswd && \
+    usermod -aG sudo attacker && \
+    echo "attacker ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+
+# Dar permisos especiales a nmap para escaneo sin root
+RUN setcap cap_net_raw,cap_net_admin,cap_net_bind_service+eip /usr/bin/nmap
+
 USER attacker
 WORKDIR /home/attacker
 
