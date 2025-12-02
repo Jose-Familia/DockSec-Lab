@@ -4,7 +4,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt update && apt install -y --no-install-recommends \
     sudo net-tools iputils-ping nmap tcpdump curl wget git vim python3 python3-pip \
-    socat sqlmap gobuster nikto jq \
+    socat sqlmap gobuster nikto jq libcap2-bin \
     && apt clean && rm -rf /var/lib/apt/lists/*
 
 # Configurar sudo sin contraseña para el usuario attacker
