@@ -20,8 +20,8 @@ RUN groupadd -r suricata 2>/dev/null || true && \
 RUN mkdir -p /var/log/suricata /etc/suricata/rules
 
 # Copy configuration files from configs directory
-COPY ../configs/suricata.yaml /etc/suricata/suricata.yaml
-COPY ../configs/suricata-rules.rules /etc/suricata/rules/local.rules
+COPY configs/suricata.yaml /etc/suricata/suricata.yaml
+COPY configs/suricata-rules.rules /etc/suricata/rules/local.rules
 
 # Set proper permissions
 RUN chown -R suricata:suricata /var/log/suricata /etc/suricata
